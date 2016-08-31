@@ -1,0 +1,11 @@
+.gradle/
+.classpath
+.project
+.settings
+**/.*.swp
+bin
+build
+
+tunnels.json
+src/main/webapp/VAADIN/gwt-unitCache
+src/main/webapp/VAADIN/widgetsets
