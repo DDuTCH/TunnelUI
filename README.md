@@ -1,11 +1,11 @@
 # TunnelUI
 
 To run the app:
-A. gradlew vaadinRun
-B. Drop the .war file in your favourite webserver.
+- `gradlew vaadinRun` or
+- Drop the .war file in your favourite webserver.
 
 To generate the eclipse files:
-gradlew eclipse
+- `gradlew eclipse`
 
 
 ![Main Screen](http://imgur.com/8bMy5gi.jpg "Main Screen")
