@@ -1,0 +1,10 @@
+Change error label to a scrollable console and no longer hide the text. 
+
+STILL NEEDED? Auto close connection on errors found in log. Log warning why the connection was closed with timestamp.
+
+Add ssh vpn (multi step setup)
+
+STILL NEEDED? option to override 'ExitOnForwardFailure'
+STILL NEEDED? allow user to append ssh arguments.
+
+DONE: Use java ssh instead (http://www.jcraft.com/jsch/)

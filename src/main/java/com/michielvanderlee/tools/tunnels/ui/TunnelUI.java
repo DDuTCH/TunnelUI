@@ -1,26 +1,25 @@
 package com.michielvanderlee.tools.tunnels.ui;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.servlet.annotation.WebServlet;
 
-import org.apache.commons.lang3.StringUtils;
-
+import com.michielvanderlee.tools.tunnels.CacheUpdateListener;
 import com.michielvanderlee.tools.tunnels.Tunnel;
+import com.michielvanderlee.tools.tunnels.Tunnel.TunnelField;
 import com.michielvanderlee.tools.tunnels.TunnelService;
+import com.michielvanderlee.vaadin.windows.ModalWindow;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.annotations.Widgetset;
-import com.vaadin.data.Property;
-import com.vaadin.data.util.ObjectProperty;
+import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.event.SelectionEvent;
 import com.vaadin.event.SelectionEvent.SelectionListener;
@@ -30,15 +29,14 @@ import com.vaadin.server.Resource;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
-import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.data.sort.SortDirection;
-import com.vaadin.shared.ui.label.ContentMode;
-import com.vaadin.ui.CssLayout;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Grid;
 import com.vaadin.ui.Grid.CellReference;
 import com.vaadin.ui.Grid.CellStyleGenerator;
 import com.vaadin.ui.Grid.SelectionMode;
-import com.vaadin.ui.Label;
+import com.vaadin.ui.TextArea;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.renderers.ImageRenderer;
@@ -56,98 +54,136 @@ import com.vaadin.ui.renderers.ImageRenderer;
 @Widgetset( "com.michielvanderlee.tools.tunnels.ui.TunnelUIWidgetset" )
 public class TunnelUI extends UI
 {
+	// ****************************************************************************************
+	// Constructors
+	// ****************************************************************************************
+	public TunnelUI()
+	{
+		logArea = new TextArea();
+		logArea.setWidth( 670, Unit.PIXELS );
+		logArea.setReadOnly( true );
+		logArea.setImmediate( true );
+		logArea.setWordwrap( false );
+		logArea.setBuffered( true );
 
+		Logger logger = Logger.getLogger( "" );
+
+		logger.addHandler( new Handler() {
+			{
+				setLevel( Level.INFO );
+				setFormatter( new SimpleFormatter() );
+			}
+
+			@Override
+			public void publish( LogRecord record )
+			{
+				if( !isLoggable( record ) )
+				{
+					return;
+				}
+				String msg = getFormatter().format( record );
+
+				logArea.setReadOnly( false );
+				logArea.setValue( logArea.getValue() + msg );
+				logArea.setReadOnly( true );
+				logArea.commit();
+			}
+
+			@Override
+			public void flush()
+			{
+				// No action needed
+			}
+
+			@Override
+			public void close() throws SecurityException
+			{
+				// No action needed
+			}
+		} );
+	}
+
+	// ****************************************************************************************
+	// Methods
+	// ****************************************************************************************
 	@Override
 	protected void init( VaadinRequest vaadinRequest )
 	{
 		setPollInterval( 1000 );
-		
-		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-		List<ScheduledFuture<?>> futures = new ArrayList<ScheduledFuture<?>>();
-		final ObjectProperty<String> errorProperty = new ObjectProperty<String>( "" ) {
-			@Override
-			public void setValue( String newValue ) throws Property.ReadOnlyException
-			{
-				super.setValue( newValue );
-
-				if( !StringUtils.isBlank( newValue ) )
-				{
-					for( ScheduledFuture<?> future : futures)
-					{
-						future.cancel( false );
-					}
-					
-					ScheduledFuture<?> f = scheduler.schedule( new Runnable()
-					{
-						@Override
-						public void run()
-						{
-							setValue( "" );
-						}
-					}, 5, TimeUnit.SECONDS );
-					futures.add(f);
-				}
-			}
-		};
-		TunnelService.setErrorProperty( errorProperty );
 
 		final VerticalLayout vl = new VerticalLayout();
-		final CssLayout cssLayout = new CssLayout();
 
-		final Grid grid = new Grid( TunnelService.getContainer() );
+		actionBar = new ActionBar();
+		actionBar.init();
+		actionBar.addNewClickListener( new OnNewClickListener() );
+		actionBar.addEditClickListener( new OnEditClickListener() );
+		actionBar.addDeleteClickListener( new OnDeleteClickListener() );
+		actionBar.addEnableClickListener( new OnEnableClickListener() );
+		actionBar.addDisableClickListener( new OnDisableClickListener() );
+
+		grid = buildGrid();
+		grid.addSelectionListener( new GridSelectionListener() );
+
+		vl.addComponent( actionBar );
+		vl.addComponent( grid );
+		vl.addComponent( logArea );
+
+		setContent( vl );
+
+		addPollListener( new PollListener() {
+
+			@Override
+			public void poll( PollEvent event )
+			{
+				// Force refresh of grid
+				grid.sort( "connected", SortDirection.DESCENDING );
+			}
+		} );
+	}
+
+	private Set<Tunnel> getSelectedTunnels()
+	{
+		Set<Tunnel> selectedTunnels = new HashSet<Tunnel>();
+		for( Object selected : grid.getSelectedRows() )
+		{
+			assert selected instanceof Tunnel;
+			selectedTunnels.add( (Tunnel) selected );
+		}
+
+		return selectedTunnels;
+	}
+
+	private Grid buildGrid()
+	{
+		Grid grid = new Grid( getTunnelContainer() );
 		grid.setImmediate( true );
-		grid.setWidth( 610, Unit.PIXELS );
-		grid.getColumn( "localPort" )
-				.setConverter( new NoGroupingIntegerConverter() );
-		grid.getColumn( "hostPort" )
-				.setConverter( new NoGroupingIntegerConverter() );
-		grid.getColumn( "host" )
-				.setWidth( 165 );
-		grid.getColumn( "tunnelHost" )
-				.setWidth( 165 );
-		grid.getColumn( "tunnelUser" )
+		grid.setWidth( 670, Unit.PIXELS );
+		grid.getColumn( TunnelField.ID.getName() )
 				.setHidden( true );
-		grid.getColumn( "enabled" )
-				.setRenderer( new ImageRenderer(), new Converter<Resource, Boolean>() {
-
-					@Override
-					public Boolean convertToModel( Resource value, Class<? extends Boolean> targetType, Locale locale ) throws com.vaadin.data.util.converter.Converter.ConversionException
-					{
-						return false;
-					}
-
-					@Override
-					public Resource convertToPresentation( Boolean value, Class<? extends Resource> targetType, Locale locale ) throws com.vaadin.data.util.converter.Converter.ConversionException
-					{
-						if( value )
-						{
-							return new ThemeResource( "img/circle_green.png" );
-						}
-						else
-						{
-							return new ThemeResource( "img/circle_red.png" );
-						}
-					}
-
-					@Override
-					public Class<Boolean> getModelType()
-					{
-						return Boolean.class;
-					}
-
-					@Override
-					public Class<Resource> getPresentationType()
-					{
-						return Resource.class;
-					}
-
-				} )
+		grid.getColumn( TunnelField.LOCAL_PORT.getName() )
+				.setConverter( new NoGroupingIntegerConverter() );
+		grid.getColumn( TunnelField.REMOTE_PORT.getName() )
+				.setConverter( new NoGroupingIntegerConverter() );
+		grid.getColumn( TunnelField.HOST.getName() )
+				.setWidth( 165 );
+		grid.getColumn( TunnelField.TUNNEL_HOST.getName() )
+				.setWidth( 165 );
+		grid.getColumn( TunnelField.TUNNEL_USER.getName() )
+				.setHidden( true );
+		grid.getColumn( TunnelField.TUNNEL_PASSWORD.getName() )
+				.setHidden( true );
+		grid.getColumn( TunnelField.TUNNEL_TYPE.getName() )
+				.setHidden( true );
+		grid.getColumn( TunnelField.SESSION.getName() )
+				.setHidden( true );
+		grid.getColumn( TunnelField.CONNECTED.getName() )
+				.setRenderer( new ImageRenderer(), new ConnectedConverter() )
 				.setHeaderCaption( "" );
 		grid.setCellStyleGenerator( new CellStyleGenerator() {
 			@Override
 			public String getStyle( CellReference cell )
 			{
-				if( cell.getPropertyId().equals( "enabled" ) )
+				if( cell.getPropertyId().equals( TunnelField.CONNECTED.getName() ) )
 				{
 					return "icon";
 				}
@@ -155,52 +191,40 @@ public class TunnelUI extends UI
 			}
 		} );
 
-		grid.setColumnOrder( "enabled", "localPort", "host", "hostPort", "tunnelHost", "process" );
-		grid.addSelectionListener( new SelectionListener() {
-
-			@Override
-			public void select( SelectionEvent event )
-			{
-				Set<Tunnel> selectedTunnels = new HashSet<Tunnel>();
-				for( Object selected : event.getSelected() )
-				{
-					assert selected instanceof Tunnel;
-					selectedTunnels.add( (Tunnel) selected );
-				}
-				tunnelForm.selectItems( selectedTunnels );
-			}
-		} );
+		grid.setColumnOrder( TunnelField.CONNECTED.getName(), TunnelField.LOCAL_PORT.getName(), TunnelField.HOST.getName(), TunnelField.REMOTE_PORT.getName(), TunnelField.TUNNEL_HOST.getName() );
 		grid.setSelectionMode( SelectionMode.MULTI );
-		grid.sort( "enabled", SortDirection.DESCENDING );
-		
-		tunnelForm = new TunnelForm( grid );
-		tunnelForm.init();
+		grid.sort( TunnelField.CONNECTED.getName(), SortDirection.DESCENDING );
 
-		cssLayout.addComponent( grid );
-		cssLayout.addComponent( tunnelForm );
+		return grid;
+	}
 
-		Label lbl = new Label( );
-		lbl.setImmediate( true );
-		lbl.setContentMode( ContentMode.PREFORMATTED );
-		lbl.setStyleName( "error" );
-		
-		vl.addComponent( cssLayout );
-		vl.addComponent( lbl );
+	private BeanItemContainer<Tunnel> getTunnelContainer()
+	{
+		BeanItemContainer<Tunnel> container = new BeanItemContainer<Tunnel>( Tunnel.class );
+		TunnelService service = TunnelService.getInstance();
+		container.addAll( service.getCache().getAll() );
 
-		setContent( vl );
-		
-		addPollListener( new PollListener() {
-			
+		service.getCache().addListener( new CacheUpdateListener<Tunnel>() {
+
 			@Override
-			public void poll( PollEvent event )
+			public void removedFromCache( Tunnel object )
 			{
-				// Force refresh of grid
-				grid.sort( "enabled", SortDirection.DESCENDING );
-				// Hack to update the label. 
-				// Setting the lbl datasource to errorProperty would not update the label properly
-				lbl.setValue( errorProperty.getValue() );
+				container.removeItem( object );
+			}
+
+			@Override
+			public void addedToCache( Tunnel object )
+			{
+				container.addItem( object );
 			}
 		} );
+
+		return container;
+	}
+
+	private static Logger getLogger()
+	{
+		return Logger.getLogger( TunnelUI.class.getName() );
 	}
 
 	@WebServlet( urlPatterns = "/*", name = "TunnelUIServlet", asyncSupported = true )
@@ -210,6 +234,242 @@ public class TunnelUI extends UI
 
 	}
 
-	private TunnelForm tunnelForm;
+	// ****************************************************************************************
+	// getters and setters.
+	// ****************************************************************************************
+	// @formatter:off
+	
+	// @formatter:on
+	// ****************************************************************************************
+	// Properties
+	// ****************************************************************************************
+	private ActionBar	actionBar;
+	private Grid		grid;
+	private TextArea	logArea;
 
+	// ****************************************************************************************
+	// Embedded classes
+	// ****************************************************************************************
+	private class ConnectedConverter implements Converter<Resource, Boolean>
+	{
+		@Override
+		public Boolean convertToModel( Resource value, Class<? extends Boolean> targetType, Locale locale ) throws com.vaadin.data.util.converter.Converter.ConversionException
+		{
+			return false;
+		}
+
+		@Override
+		public Resource convertToPresentation( Boolean value, Class<? extends Resource> targetType, Locale locale ) throws com.vaadin.data.util.converter.Converter.ConversionException
+		{
+			if( value )
+			{
+				return new ThemeResource( "img/circle_green.png" );
+			}
+			else
+			{
+				return new ThemeResource( "img/circle_red.png" );
+			}
+		}
+
+		@Override
+		public Class<Boolean> getModelType()
+		{
+			return Boolean.class;
+		}
+
+		@Override
+		public Class<Resource> getPresentationType()
+		{
+			return Resource.class;
+		}
+	}
+
+	private class GridSelectionListener implements SelectionListener
+	{
+		@Override
+		public void select( SelectionEvent event )
+		{
+			Set<Tunnel> selectedTunnels = new HashSet<Tunnel>();
+			for( Object selected : event.getSelected() )
+			{
+				assert selected instanceof Tunnel;
+				selectedTunnels.add( (Tunnel) selected );
+			}
+
+			if( selectedTunnels.size() == 0 )
+			{
+				deselectAll();
+			}
+			else if( selectedTunnels.size() == 1 )
+			{
+				selectSingle( selectedTunnels );
+			}
+			else
+			{
+				selectMultiple( selectedTunnels );
+			}
+		}
+
+		private void deselectAll()
+		{
+			actionBar.enableEditButton( false );
+			actionBar.enableDeleteButton( false );
+			actionBar.enableEnableButton( false );
+			actionBar.enableDisableButton( false );
+		}
+
+		private void selectSingle( Set<Tunnel> tunnels )
+		{
+			Tunnel tunnel = tunnels.iterator().next();
+			actionBar.enableEditButton( true );
+			actionBar.enableDeleteButton( true );
+			actionBar.enableEnableButton( !tunnel.isConnected() );
+			actionBar.enableDisableButton( tunnel.isConnected() );
+		}
+
+		private void selectMultiple( Set<Tunnel> tunnels )
+		{
+			actionBar.enableEditButton( false );
+			actionBar.enableDeleteButton( true );
+
+			boolean allEnabled = true;
+			boolean allDisabled = true;
+			for( Tunnel tunnel : tunnels )
+			{
+				if( tunnel.isConnected() )
+				{
+					allDisabled = false;
+				}
+				else
+				{
+					allEnabled = false;
+				}
+
+				if( !(allEnabled && allDisabled) )
+				{
+					break;
+				}
+			}
+
+			actionBar.enableEnableButton( !allEnabled );
+			actionBar.enableDisableButton( !allDisabled );
+		}
+	}
+
+	private class OnNewClickListener implements ClickListener
+	{
+		@Override
+		public void buttonClick( ClickEvent event )
+		{
+			ModalWindow tunnelWindow = new ModalWindow( "New Tunnel" );
+
+			TunnelForm tunnelForm = new TunnelForm();
+			tunnelForm.init();
+
+			tunnelWindow.setContent( tunnelForm );
+			tunnelWindow.center();
+
+			tunnelWindow.addOkClickListener( new ClickListener() {
+				@Override
+				public void buttonClick( ClickEvent event )
+				{
+					TunnelService.getInstance().addTunnel( tunnelForm.getTunnel() );
+					getLogger().log( Level.FINE, "New" );
+				}
+			} );
+			UI.getCurrent().addWindow( tunnelWindow );
+		}
+	}
+
+	private class OnEditClickListener implements ClickListener
+	{
+		@Override
+		public void buttonClick( ClickEvent event )
+		{
+			Set<Tunnel> selectedTunnels = getSelectedTunnels();
+			if( selectedTunnels.size() == 0 || selectedTunnels.size() > 1 )
+			{
+				getLogger().log( Level.WARNING, "Can't edit " + selectedTunnels.size() + " items." );
+				return;
+			}
+
+			Tunnel selectedTunnel = selectedTunnels.iterator().next();
+			ModalWindow tunnelWindow = new ModalWindow( "Edit Tunnel" );
+
+			TunnelForm tunnelForm = new TunnelForm();
+			tunnelForm.init();
+			tunnelForm.populateFormWithItem( selectedTunnel );
+
+			tunnelWindow.setContent( tunnelForm );
+			tunnelWindow.center();
+
+			tunnelWindow.addOkClickListener( new ClickListener() {
+				@Override
+				public void buttonClick( ClickEvent event )
+				{
+					TunnelService.getInstance().removeTunnel( selectedTunnel.getId() );
+					TunnelService.getInstance().addTunnel( tunnelForm.getTunnel() );
+					getLogger().log( Level.FINE, "Edit" );
+				}
+			} );
+			UI.getCurrent().addWindow( tunnelWindow );
+		}
+	}
+
+	private class OnDeleteClickListener implements ClickListener
+	{
+		@Override
+		public void buttonClick( ClickEvent event )
+		{
+			Set<Tunnel> selectedTunnels = getSelectedTunnels();
+			if( selectedTunnels.size() == 0 )
+			{
+				getLogger().log( Level.WARNING, "Nothing to delete." );
+				return;
+			}
+
+			for( Tunnel tunnel : selectedTunnels )
+			{
+				TunnelService.getInstance().removeTunnel( tunnel.getId() );
+			}
+		}
+	}
+
+	private class OnEnableClickListener implements ClickListener
+	{
+		@Override
+		public void buttonClick( ClickEvent event )
+		{
+			Set<Tunnel> selectedTunnels = getSelectedTunnels();
+			if( selectedTunnels.size() == 0 )
+			{
+				getLogger().log( Level.WARNING, "Nothing to enable." );
+				return;
+			}
+
+			for( Tunnel tunnel : selectedTunnels )
+			{
+				TunnelService.getInstance().startTunnel( tunnel.getId() );
+			}
+		}
+	}
+
+	private class OnDisableClickListener implements ClickListener
+	{
+		@Override
+		public void buttonClick( ClickEvent event )
+		{
+			Set<Tunnel> selectedTunnels = getSelectedTunnels();
+			if( selectedTunnels.size() == 0 )
+			{
+				getLogger().log( Level.WARNING, "Nothing to disable." );
+				return;
+			}
+
+			for( Tunnel tunnel : selectedTunnels )
+			{
+				TunnelService.getInstance().stopTunnel( tunnel.getId() );
+			}
+		}
+	}
 }

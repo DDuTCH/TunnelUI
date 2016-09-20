@@ -1,19 +1,14 @@
 package com.michielvanderlee.tools.tunnels.ui;
 
-import java.util.Set;
-
 import com.michielvanderlee.tools.tunnels.Tunnel;
-import com.michielvanderlee.tools.tunnels.TunnelService;
+import com.michielvanderlee.tools.tunnels.TunnelBuilder;
+import com.michielvanderlee.tools.tunnels.TunnelType;
 import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.data.validator.IntegerRangeValidator;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Button.ClickEvent;
-import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.FormLayout;
-import com.vaadin.ui.Grid;
-import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.PasswordField;
 import com.vaadin.ui.TextField;
-import com.vaadin.ui.themes.ValoTheme;
 
 public class TunnelForm extends FormLayout
 {
@@ -25,10 +20,9 @@ public class TunnelForm extends FormLayout
 	// ****************************************************************************************
 	// Constructors
 	// ****************************************************************************************
-	public TunnelForm( Grid grid )
+	public TunnelForm( )
 	{
 		super();
-		this.grid = grid;
 	}
 
 	// ****************************************************************************************
@@ -47,136 +41,49 @@ public class TunnelForm extends FormLayout
 		host = new TextField( "Host:" );
 
 		ObjectProperty<Integer> hostPortProp = new ObjectProperty<Integer>( 1 );
-		hostPort = new TextField( "Host Port:", hostPortProp );
-		hostPort.addValidator( new IntegerRangeValidator( "Must be between 1-66535", 1, 65535 ) );
-		hostPort.setConverter( new NoGroupingIntegerConverter() );
-		hostPort.setImmediate( true );
+		remotePort = new TextField( "Remote Port:", hostPortProp );
+		remotePort.addValidator( new IntegerRangeValidator( "Must be between 1-66535", 1, 65535 ) );
+		remotePort.setConverter( new NoGroupingIntegerConverter() );
+		remotePort.setImmediate( true );
 
 		tunnelHost = new TextField( "Tunnel Host:" );
 		tunnelUser = new TextField( "Tunnel User:" );
-
-		HorizontalLayout hl1 = new HorizontalLayout();
-		create = new Button( "Create" );
-		create.addClickListener( new ClickListener() {
-
-			@Override
-			public void buttonClick( ClickEvent event )
-			{
-				TunnelService.addTunnel( new Tunnel(
-						(Integer) localPort.getConvertedValue(),
-						(Integer) hostPort.getConvertedValue(),
-						host.getValue(),
-						tunnelHost.getValue(),
-						tunnelUser.getValue() ) );
-			}
-		} );
-		create.setStyleName( ValoTheme.BUTTON_PRIMARY );
-
-		delete = new Button( "Delete" );
-		delete.setEnabled( false );
-		delete.setDisableOnClick( true );
-		delete.setStyleName( ValoTheme.BUTTON_DANGER );
-		delete.addClickListener( new ClickListener() {
-			@Override
-			public void buttonClick( ClickEvent event )
-			{
-				if( selectedItems != null && selectedItems.size() > 0 )
-				{
-					for( Tunnel selectedTunnel : selectedItems )
-					{
-						TunnelService.removeTunnel( selectedTunnel );
-					}
-				}
-				enable.setEnabled( false );
-				disable.setEnabled( false );
-			}
-		} );
-
-		HorizontalLayout hl2 = new HorizontalLayout();
-		enable = new Button( "Enable" );
-		enable.setEnabled( false );
-		enable.setStyleName( ValoTheme.BUTTON_PRIMARY );
-		enable.addClickListener( new ClickListener() {
-			@Override
-			public void buttonClick( ClickEvent event )
-			{
-				if( selectedItems != null && selectedItems.size() > 0 )
-				{
-					for( Tunnel selectedTunnel : selectedItems )
-					{
-						TunnelService.startTunnel( selectedTunnel );
-					}
-					grid.clearSortOrder();
-				}
-			}
-		} );
-		
-		disable = new Button( "Disable" );
-		disable.setEnabled( false );
-		disable.setStyleName( ValoTheme.BUTTON_DANGER );
-		disable.addClickListener( new ClickListener() {
-			@Override
-			public void buttonClick( ClickEvent event )
-			{
-				if( selectedItems != null && selectedItems.size() > 0 )
-				{
-					for( Tunnel selectedTunnel : selectedItems )
-					{
-						selectedTunnel.getProcess().stop();
-					}
-					grid.clearSortOrder();
-				}
-			}
-		} );
-
+		tunnelPassword = new PasswordField( "Tunnel Password:" );
+		reverseTunnel = new CheckBox( "Reverse Tunnel:" );
 		
 		addComponent( localPort );
 		addComponent( host );
-		addComponent( hostPort );
+		addComponent( remotePort );
 		addComponent( tunnelHost );
 		addComponent( tunnelUser );
-
-		hl1.addComponent( create );
-		hl1.addComponent( delete );
-		hl1.setSpacing( true );
-		
-		hl2.addComponent( enable );
-		hl2.addComponent( disable );
-		hl2.setSpacing( true );
-
-		addComponent( hl1 );
-		addComponent( hl2 );
+		addComponent( tunnelPassword );
+		addComponent( reverseTunnel );
 	}
 
-	public void selectItems( Set<Tunnel> selectedItems )
+	public Tunnel getTunnel()
 	{
-		this.selectedItems = selectedItems;
-		if( selectedItems.size() > 0 )
-		{
-			populateFormWithItem( selectedItems.iterator().next() );
-
-			delete.setEnabled( true );
-			enable.setEnabled( true );
-			disable.setEnabled( true );
-		}
-		else
-		{
-			delete.setEnabled( false );
-			enable.setEnabled( false );
-			disable.setEnabled( false );
-		}
-		
+		return new TunnelBuilder()
+				.setLocalPort( Integer.valueOf( localPort.getValue() ) )
+				.setHost( host.getValue() )
+				.setRemotePort( Integer.valueOf( remotePort.getValue() ) )
+				.setTunnelHost( tunnelHost.getValue() )
+				.setTunnelUser( tunnelUser.getValue() )
+				.setTunnelPassword( tunnelPassword.getValue() )
+				.setTunnelType( reverseTunnel.getValue() ? TunnelType.REVERSE : TunnelType.FORWARD )
+				.build();
 	}
-
-	private void populateFormWithItem( Tunnel tunnel )
+	
+	public void populateFormWithItem( Tunnel tunnel )
 	{
 		localPort.setValue( Integer.toString( tunnel.getLocalPort() ) );
-		hostPort.setValue( Integer.toString( tunnel.getHostPort() ) );
+		remotePort.setValue( Integer.toString( tunnel.getRemotePort() ) );
 		host.setValue( tunnel.getHost() );
 		tunnelHost.setValue( tunnel.getTunnelHost() );
 		tunnelUser.setValue( tunnel.getTunnelUser() );
+		tunnelPassword.setValue( tunnel.getTunnelPassword() );
+		reverseTunnel.setValue( tunnel.getType() == TunnelType.REVERSE );
 	}
-
+	
 	// ****************************************************************************************
 	// getters and setters.
 	// ****************************************************************************************
@@ -185,9 +92,9 @@ public class TunnelForm extends FormLayout
 		return localPort;
 	}
 
-	public TextField getHostPort()
+	public TextField getRemotePort()
 	{
-		return hostPort;
+		return remotePort;
 	}
 
 	public TextField getHost()
@@ -204,23 +111,25 @@ public class TunnelForm extends FormLayout
 	{
 		return tunnelUser;
 	}
+	
+	public PasswordField getTunnelPassword()
+	{
+		return tunnelPassword;
+	}
 
+	public CheckBox getReverseTunnel()
+	{
+		return reverseTunnel;
+	}
+	
 	// ****************************************************************************************
 	// Properties
 	// ****************************************************************************************
-	private Grid grid;
-	
 	private TextField		localPort;
-	private TextField		hostPort;
+	private TextField		remotePort;
 	private TextField		host;
 	private TextField		tunnelHost;
 	private TextField		tunnelUser;
-
-	private Button			create;
-	private Button			delete;
-
-	private Button			enable;
-	private Button			disable;
-	
-	private Set<Tunnel>		selectedItems;
+	private PasswordField	tunnelPassword;
+	private CheckBox		reverseTunnel;
 }

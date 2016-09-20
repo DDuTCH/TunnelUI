@@ -33,6 +33,41 @@
 
 @mixin tunnelui {
   @include valo;
+	[class*="margin-top"] > tbody > [class*="firstrow"] > td {
+		padding-top: 10px;
+	}
+
+	[class*="margin-bottom"] > tbody > [class*="lastrow"] > td {
+		padding-bottom: 10px;
+	}
+
+	.popupContent .v-verticallayout {
+		margin: 0px 30px 20px 30px;
+	}
+
+	.actionBar, .v-grid, .v-textarea {
+		margin: 10px 0px 0px 10px;	
+	}
+
+	.actionBar .v-button, .actionBar hr {
+		margin-right: 10px;	
+	}
+
+	.actionBar hr {
+		height: 20px;
+	}
+
+	.v-textarea {
+		resize: both;	
+	}
+
+	.modalwindow .actionbar {
+		float: right;
+	}
+
+	.modalwindow .actionbar .v-button {
+		margin-left: 10px;
+	}
 
 	.v-grid .v-grid-cell.icon > img {
 		width: 25px;	

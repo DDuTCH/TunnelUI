@@ -1,137 +1,108 @@
 package com.michielvanderlee.tools.tunnels;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.vaadin.data.util.BeanItemContainer;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UserInfo;
 import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.server.VaadinSession;
 
 public class TunnelService
 {
-	//****************************************************************************************
+	// ****************************************************************************************
 	// Constructors
-	//****************************************************************************************
-	
-	//****************************************************************************************
+	// ****************************************************************************************
+	private TunnelService()
+	{
+		jsch = new JSch();
+		tunnelCache = new TunnelCache( CACHE_FILE_NAME );
+		try
+		{
+			tunnelCache.loadFromFile();
+		}
+		catch( IOException e )
+		{
+			getLogger().log( Level.SEVERE, "Failed to load from file.", e );
+		}
+	}
+
+	// ****************************************************************************************
 	// Methods
-	//****************************************************************************************
-	public static void startTunnel( Tunnel tunnel )
+	// ****************************************************************************************
+	public void startTunnel( Long id )
 	{
 		try
 		{
-			tunnel.getProcess().execute( tunnel );
-		}
-		catch( IOException e )
-		{
-			setErrorMsg( e );
-		}
-	}
-	
-	public static void addTunnel( Tunnel tunnel )
-	{		
-		try {
-			TunnelProcess process = new TunnelProcess();
-			process.execute( tunnel );
+			Tunnel tunnel = tunnelCache.get( id );
+			Session session = jsch.getSession( tunnel.getTunnelUser(), tunnel.getTunnelHost() );
 			
-			tunnel.setProcess( process );
-			container.addBean( tunnel);
-			saveToFile( new File( "tunnels.json" ) );
+			session.setUserInfo( buildUserInfo( tunnel ) );
+			session.connect();
+			switch( tunnel.getType() )
+			{
+				case FORWARD:
+					session.setPortForwardingL( tunnel.getLocalPort(), tunnel.getHost(), tunnel.getRemotePort() );
+					break;
+				case REVERSE:
+					session.setPortForwardingR( tunnel.getRemotePort(), tunnel.getHost(), tunnel.getLocalPort() );
+					break;
+				case VPN:
+					break;
+			}
+
+			tunnel.setSession( session );
 		}
-		catch( IOException e )
+		catch( JSchException e )
 		{
-			setErrorMsg( e );
+			getLogger().log( Level.SEVERE, "Failed to start Tunnel.", e );
 		}
 	}
-	
-	public static void removeTunnel( Tunnel tunnel )
+
+	public void stopTunnel( long id )
 	{
-		try {
-			tunnel.getProcess().stop();
-			
-			container.removeItem( tunnel );
-			
-			saveToFile( new File( "tunnels.json" ) );
+		Tunnel tunnel = tunnelCache.get( id );
+		if( tunnel.getSession() != null )
+		{
+			tunnel.getSession().disconnect();
+		}
+	}
+
+	public void addTunnel( Tunnel tunnel )
+	{
+		try
+		{
+			tunnelCache.add( tunnel );
+			tunnelCache.saveToFile();
+			startTunnel( tunnel.getId() );
 		}
 		catch( IOException e )
 		{
-			setErrorMsg( e );
+			getLogger().log( Level.SEVERE, "Failed to start Tunnel.", e );
 		}
 	}
-	
-	public static void removeAll()
+
+	public void removeTunnel( Long id )
 	{
-		Iterator<Tunnel> iter = container.getItemIds().iterator();
-		if( iter.hasNext() )
+		stopTunnel( id );
+		tunnelCache.remove( id );
+	}
+
+	public void removeAll()
+	{
+		Iterator<Tunnel> iter = tunnelCache.getAll().iterator();
+		while( iter.hasNext() )
 		{
 			Tunnel tunnel = iter.next();
-			removeTunnel( tunnel );
+			removeTunnel( tunnel.getId() );
 		}
 	}
-	
-	
-	public static void saveToFile( File file ) throws IOException
-	{
-		FileWriter writer = null;
-		try
-		{
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			writer = new FileWriter( file );
-			writer.write( gson.toJson( container.getItemIds() ) );
-		}
-		finally
-		{
-			if ( writer != null )
-			{
-				writer.close();
-			}
-		}
-	}
-	
-	public static void loadFromFile( File file ) throws IOException
-	{
-		FileReader reader = null;
-		try
-		{
-			Gson gson = new Gson();
-			reader = new FileReader( file );
 
-			List<Tunnel> list = gson.fromJson( reader, new TypeToken<List<Tunnel>>(){}.getType() );
-			Iterator<Tunnel> iter = list.iterator();
-			Tunnel tunnel;
-			while( iter.hasNext() )
-			{
-				tunnel = iter.next();
-				if( tunnel.getProcess() == null )
-				{
-					iter.remove();
-				}
-			}
-			
-			container.addAll( list );
-		}
-		finally
-		{
-			if ( reader != null )
-			{
-				reader.close();
-			}
-		}
-		
-		/* Overwrite with updated list. 
-		 * It's possible that we found tunnels in the file that no longer exist, this removes them 
-		 */ 
-		saveToFile( file );
-	}
-	
-	public static void setErrorMsg( Exception e )
+	public void setErrorMsg( Exception e )
 	{
 		if( errorProperty == null )
 		{
@@ -140,39 +111,102 @@ public class TunnelService
 		else
 		{
 			VaadinSession.getCurrent().getLockInstance().lock();
-			try{
+			try
+			{
 				errorProperty.setValue( e.getMessage() );
 			}
-			finally{
+			finally
+			{
 				VaadinSession.getCurrent().getLockInstance().unlock();
 			}
 		}
-		
+
 	}
-	
-	//****************************************************************************************
-	// getters and setters.
-	//****************************************************************************************
-	public static BeanItemContainer<Tunnel> getContainer()
+
+	public static TunnelService getInstance()
 	{
-		return container;
+		if( instance == null )
+		{
+			instance = new TunnelService();
+		}
+
+		return instance;
 	}
-	
-	public static ObjectProperty<String> getErrorProperty()
+
+	private UserInfo buildUserInfo( Tunnel tunnel )
+	{
+		UserInfo userInfo = new UserInfo() {
+
+			@Override
+			public void showMessage( String message )
+			{
+				getLogger().log( Level.INFO, message );
+			}
+
+			@Override
+			public boolean promptYesNo( String message )
+			{
+				return true;
+			}
+
+			@Override
+			public boolean promptPassword( String message )
+			{
+				return true;
+			}
+
+			@Override
+			public boolean promptPassphrase( String message )
+			{
+				return false;
+			}
+
+			@Override
+			public String getPassword()
+			{
+				return tunnel.getTunnelPassword();
+			}
+
+			@Override
+			public String getPassphrase()
+			{
+				return null;
+			}
+		};
+
+		return userInfo;
+	}
+
+	private static Logger getLogger()
+	{
+		return Logger.getLogger( TunnelService.class.getName() );
+	}
+
+	// ****************************************************************************************
+	// getters and setters.
+	// ****************************************************************************************
+	public TunnelCache getCache()
+	{
+		return tunnelCache;
+	}
+
+	public ObjectProperty<String> getErrorProperty()
 	{
 		return errorProperty;
 	}
-	
-	public static void setErrorProperty( ObjectProperty<String> errorPropertyIn )
+
+	public void setErrorProperty( ObjectProperty<String> errorPropertyIn )
 	{
 		errorProperty = errorPropertyIn;
 	}
 
-		
-	//****************************************************************************************
+	// ****************************************************************************************
 	// Properties
-	//****************************************************************************************
-	private static BeanItemContainer<Tunnel> container = new BeanItemContainer<Tunnel>( Tunnel.class );	
-	private static ObjectProperty<String> errorProperty = null;
-	
+	// ****************************************************************************************
+	private static final String		CACHE_FILE_NAME	= "tunnels.json";
+	private static TunnelService	instance;
+
+	private ObjectProperty<String>	errorProperty	= null;
+	private JSch					jsch;
+	private TunnelCache				tunnelCache;
 }

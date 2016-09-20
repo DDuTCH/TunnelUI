@@ -999,7 +999,7 @@
  */
 
 .v-vaadin-version:after {
-	content: "7.6.8";
+	content: "7.6.4";
 }
 
 .v-widget {
@@ -4425,8 +4425,6 @@ div.v-layout.v-horizontal.v-widget {
 
 .tunnelui .v-grid-sidebar.v-contextmenu .v-grid-sidebar-content {
 	padding: 4px 0;
-	overflow-y: auto;
-	overflow-x: hidden;
 }
 
 .tunnelui .v-grid-sidebar.v-contextmenu .v-grid-sidebar-content .gwt-MenuBar .gwt-MenuItem .column-hiding-toggle {
@@ -4984,8 +4982,6 @@ div.v-layout.v-horizontal.v-widget {
 .tunnelui .v-grid-sidebar.v-contextmenu.open .v-grid-sidebar-content {
 	margin: 0 0 2px;
 	padding: 4px 4px 2px;
-	overflow-y: auto;
-	overflow-x: hidden;
 }
 
 .tunnelui .v-grid-sidebar.v-contextmenu.closed {
@@ -12935,42 +12931,6 @@ div.v-layout.v-horizontal.v-widget {
 	display: inline-block;
 	width: 19px;
 	overflow: hidden;
-}
-
-.tunnelui [class*="margin-top"] > tbody > [class*="firstrow"] > td {
-	padding-top: 10px;
-}
-
-.tunnelui [class*="margin-bottom"] > tbody > [class*="lastrow"] > td {
-	padding-bottom: 10px;
-}
-
-.tunnelui .popupContent .v-verticallayout {
-	margin: 0px 30px 20px 30px;
-}
-
-.tunnelui .actionBar, .tunnelui .v-grid, .tunnelui .v-textarea {
-	margin: 10px 0px 0px 10px;
-}
-
-.tunnelui .actionBar .v-button, .tunnelui .actionBar hr {
-	margin-right: 10px;
-}
-
-.tunnelui .actionBar hr {
-	height: 20px;
-}
-
-.tunnelui .v-textarea {
-	resize: both;
-}
-
-.tunnelui .modalwindow .actionbar {
-	float: right;
-}
-
-.tunnelui .modalwindow .actionbar .v-button {
-	margin-left: 10px;
 }
 
 .tunnelui .v-grid .v-grid-cell.icon > img {

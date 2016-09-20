@@ -2,13 +2,7 @@ package com.michielvanderlee.tools.tunnels;
 
 import java.io.Serializable;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-
-import com.google.gson.annotations.JsonAdapter;
+import com.jcraft.jsch.Session;
 
 public class Tunnel implements Serializable, Cloneable
 {
@@ -20,38 +14,20 @@ public class Tunnel implements Serializable, Cloneable
 	// ****************************************************************************************
 	// Constructors
 	// ****************************************************************************************
-	public Tunnel( Integer localPort, Integer hostPort, String host, String tunnelHost, String tunnelUser )
+	public Tunnel( Integer localPort, Integer hostPort, String host, String tunnelHost, String tunnelUser, String tunnelPassword, TunnelType type )
 	{
-		super();
 		this.localPort = localPort;
-		this.hostPort = hostPort;
+		this.remotePort = hostPort;
 		this.host = host;
 		this.tunnelHost = tunnelHost;
 		this.tunnelUser = tunnelUser;
+		this.tunnelPassword = tunnelPassword;
+		this.type = type;
 	}
 
 	// ****************************************************************************************
 	// Methods
 	// ****************************************************************************************
-	public static Tunnel fromCmd( String cmd ) throws ParseException
-	{
-		String[] args = cmd.substring( 4 ).split( " " );
-
-		Options options = new Options();
-		options.addOption( "L", true, "" );
-
-		CommandLineParser parser = new DefaultParser();
-		CommandLine cmdl = parser.parse( options, args );
-
-		// Parse port:host:hostport
-		String[] args1 = cmdl.getOptionValue( 'L' ).split( "L" );
-		// Parse user@host
-		String[] args2 = cmdl.getArgs()[0].split( "@" );
-
-		Tunnel tunnel = new Tunnel( Integer.valueOf( args1[0] ), Integer.valueOf( args1[2] ), args1[1], args2[1], args2[0] );
-		return tunnel;
-	}
-
 	@Override
 	public String toString()
 	{
@@ -60,7 +36,7 @@ public class Tunnel implements Serializable, Cloneable
 				.append( ':' )
 				.append( host )
 				.append( ':' )
-				.append( hostPort )
+				.append( remotePort )
 				.append( ' ' )
 				.append( tunnelUser )
 				.append( '@' )
@@ -71,81 +47,126 @@ public class Tunnel implements Serializable, Cloneable
 	// ****************************************************************************************
 	// getters and setters.
 	// ****************************************************************************************
+	// @formatter:off
+	public Long getId()
+	{
+		return id;
+	}
+	public void setId( Long id )
+	{
+		this.id = id;
+	}
+	
 	public Integer getLocalPort()
 	{
 		return localPort;
 	}
-
 	public void setLocalPort( Integer localPort )
 	{
 		this.localPort = localPort;
 	}
 
-	public Integer getHostPort()
+	public Integer getRemotePort()
 	{
-		return hostPort;
+		return remotePort;
 	}
-
-	public void setHostPort( Integer hostPort )
+	public void setRemotePort( Integer remotePort )
 	{
-		this.hostPort = hostPort;
+		this.remotePort = remotePort;
 	}
 
 	public String getHost()
 	{
 		return host;
 	}
-
 	public void setHost( String host )
 	{
 		this.host = host;
 	}
-
+	
 	public String getTunnelHost()
 	{
 		return tunnelHost;
 	}
-
 	public void setTunnelHost( String tunnelHost )
 	{
 		this.tunnelHost = tunnelHost;
 	}
-
+	
 	public String getTunnelUser()
 	{
 		return tunnelUser;
 	}
-
 	public void setTunnelUser( String tunnelUser )
 	{
 		this.tunnelUser = tunnelUser;
 	}
-
-	public TunnelProcess getProcess()
+	
+	public String getTunnelPassword()
 	{
-		return process;
+		return tunnelPassword;
 	}
-
-	public void setProcess( TunnelProcess process )
+	public void setTunnelPassword( String tunnelPassword )
 	{
-		this.process = process;
-	}
-
-	public boolean isEnabled()
-	{
-		return process.getPid() != 0;
+		this.tunnelPassword = tunnelPassword;
 	}
 	
+	public TunnelType getType()
+	{
+		return type;
+	}
+	public void setType( TunnelType type )
+	{
+		this.type = type;
+	}
+
+	public Session getSession()
+	{
+		return session;
+	}
+	public void setSession( Session session )
+	{
+		this.session = session;
+	}
+
+	public boolean isConnected()
+	{
+		if( session == null )
+		{
+			return false;
+		}
+		return session.isConnected();
+	}
+	
+	// @formatter:on
 	// ****************************************************************************************
 	// Properties
 	// ****************************************************************************************
+	private transient Long		id;
 	private Integer				localPort;
-	private Integer				hostPort;
+	private Integer				remotePort;
 	private String				host;
 	private String				tunnelHost;
 	private String				tunnelUser;
+	private String				tunnelPassword;
+	private TunnelType			type;
 
-	@JsonAdapter( TunnelProcessAdapter.class )
-	private TunnelProcess		process;
+	private transient Session	session;
 
+	public enum TunnelField
+	{
+		ID( "id" ), LOCAL_PORT( "localPort" ), REMOTE_PORT( "remotePort" ), HOST( "host" ), TUNNEL_HOST( "tunnelHost" ), TUNNEL_USER( "tunnelUser" ), TUNNEL_PASSWORD( "tunnelPassword" ), TUNNEL_TYPE( "type" ), SESSION( "session" ), CONNECTED( "connected" );
+
+		private TunnelField( String name )
+		{
+			this.name = name;
+		}
+
+		public String getName()
+		{
+			return name;
+		}
+
+		private String name;
+	}
 }
