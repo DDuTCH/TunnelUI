@@ -118,6 +118,11 @@ public class TunnelCache
 
 	public void loadFromFile() throws IOException
 	{
+		if( !file.exists() )
+		{
+			return;
+		}
+		
 		FileReader reader = null;
 		try
 		{
