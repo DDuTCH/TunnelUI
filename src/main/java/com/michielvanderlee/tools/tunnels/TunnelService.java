@@ -56,6 +56,7 @@ public class TunnelService
 			}
 
 			tunnel.setSession( session );
+			getLogger().info( "Opened tunnel: " + tunnel.toString() );
 		}
 		catch( JSchException e )
 		{
@@ -69,6 +70,8 @@ public class TunnelService
 		if( tunnel.getSession() != null )
 		{
 			tunnel.getSession().disconnect();
+
+			getLogger().info( "Closed tunnel: " + tunnel.toString() );
 		}
 	}
 

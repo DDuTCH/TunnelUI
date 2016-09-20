@@ -27,11 +27,13 @@ public class Tunnel implements Serializable, Cloneable
 
 	// ****************************************************************************************
 	// Methods
-	// ****************************************************************************************
+	// ****************************************************************************************	
 	@Override
 	public String toString()
 	{
 		return new StringBuilder()
+				.append( type == TunnelType.FORWARD ? "-L" : "-R" )
+				.append( " " )
 				.append( localPort )
 				.append( ':' )
 				.append( host )

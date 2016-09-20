@@ -12,6 +12,7 @@ import java.util.logging.SimpleFormatter;
 import javax.servlet.annotation.WebServlet;
 
 import com.michielvanderlee.tools.tunnels.CacheUpdateListener;
+import com.michielvanderlee.tools.tunnels.LightFormatter;
 import com.michielvanderlee.tools.tunnels.Tunnel;
 import com.michielvanderlee.tools.tunnels.Tunnel.TunnelField;
 import com.michielvanderlee.tools.tunnels.TunnelService;
@@ -71,7 +72,7 @@ public class TunnelUI extends UI
 		logger.addHandler( new Handler() {
 			{
 				setLevel( Level.INFO );
-				setFormatter( new SimpleFormatter() );
+				setFormatter( new LightFormatter() );
 			}
 
 			@Override
