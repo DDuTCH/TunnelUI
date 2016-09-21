@@ -105,27 +105,6 @@ public class TunnelService
 		}
 	}
 
-	public void setErrorMsg( Exception e )
-	{
-		if( errorProperty == null )
-		{
-			e.printStackTrace();
-		}
-		else
-		{
-			VaadinSession.getCurrent().getLockInstance().lock();
-			try
-			{
-				errorProperty.setValue( e.getMessage() );
-			}
-			finally
-			{
-				VaadinSession.getCurrent().getLockInstance().unlock();
-			}
-		}
-
-	}
-
 	public static TunnelService getInstance()
 	{
 		if( instance == null )
@@ -193,23 +172,12 @@ public class TunnelService
 		return tunnelCache;
 	}
 
-	public ObjectProperty<String> getErrorProperty()
-	{
-		return errorProperty;
-	}
-
-	public void setErrorProperty( ObjectProperty<String> errorPropertyIn )
-	{
-		errorProperty = errorPropertyIn;
-	}
-
 	// ****************************************************************************************
 	// Properties
 	// ****************************************************************************************
 	private static final String		CACHE_FILE_NAME	= "tunnels.json";
 	private static TunnelService	instance;
 
-	private ObjectProperty<String>	errorProperty	= null;
 	private JSch					jsch;
 	private TunnelCache				tunnelCache;
 }
