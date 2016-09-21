@@ -156,7 +156,8 @@ public class TunnelUI extends UI
 
 	private Grid buildGrid()
 	{
-		Grid grid = new Grid( getTunnelContainer() );
+		Grid grid = new Grid( );
+		grid.setContainerDataSource( getTunnelContainer( grid ) );
 		grid.setImmediate( true );
 		grid.setWidth( 670, Unit.PIXELS );
 		grid.getColumn( TunnelField.ID.getName() )
@@ -199,7 +200,7 @@ public class TunnelUI extends UI
 		return grid;
 	}
 
-	private BeanItemContainer<Tunnel> getTunnelContainer()
+	private BeanItemContainer<Tunnel> getTunnelContainer( Grid grid )
 	{
 		BeanItemContainer<Tunnel> container = new BeanItemContainer<Tunnel>( Tunnel.class );
 		TunnelService service = TunnelService.getInstance();
@@ -210,6 +211,7 @@ public class TunnelUI extends UI
 			@Override
 			public void removedFromCache( Tunnel object )
 			{
+				grid.deselect( object );
 				container.removeItem( object );
 			}
 
