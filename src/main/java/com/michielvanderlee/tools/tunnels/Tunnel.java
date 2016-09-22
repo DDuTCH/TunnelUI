@@ -29,6 +29,20 @@ public class Tunnel implements Serializable, Cloneable
 	// Methods
 	// ****************************************************************************************	
 	@Override
+	public Tunnel clone()
+	{
+		return new TunnelBuilder()
+				.setHost( host )
+				.setLocalPort( localPort )
+				.setRemotePort( remotePort )
+				.setTunnelHost( tunnelHost )
+				.setTunnelUser( tunnelUser )
+				.setTunnelPassword( tunnelPassword )
+				.setTunnelType( type )
+				.build();
+	}
+	
+	@Override
 	public String toString()
 	{
 		return new StringBuilder()

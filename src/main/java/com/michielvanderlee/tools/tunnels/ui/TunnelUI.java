@@ -37,6 +37,7 @@ import com.vaadin.ui.Grid;
 import com.vaadin.ui.Grid.CellReference;
 import com.vaadin.ui.Grid.CellStyleGenerator;
 import com.vaadin.ui.Grid.SelectionMode;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -332,7 +333,7 @@ public class TunnelUI extends UI
 
 		private void selectMultiple( Set<Tunnel> tunnels )
 		{
-			actionBar.enableEditButton( false );
+			actionBar.enableEditButton( true );
 			actionBar.enableDeleteButton( true );
 
 			boolean allEnabled = true;
@@ -390,7 +391,7 @@ public class TunnelUI extends UI
 		public void buttonClick( ClickEvent event )
 		{
 			Set<Tunnel> selectedTunnels = getSelectedTunnels();
-			if( selectedTunnels.size() == 0 || selectedTunnels.size() > 1 )
+			if( selectedTunnels.size() == 0 )
 			{
 				getLogger().log( Level.WARNING, "Can't edit " + selectedTunnels.size() + " items." );
 				return;
@@ -403,18 +404,54 @@ public class TunnelUI extends UI
 			tunnelForm.init();
 			tunnelForm.populateFormWithItem( selectedTunnel );
 
-			tunnelWindow.setContent( tunnelForm );
+			if( selectedTunnels.size() == 1 )
+			{
+				tunnelWindow.addOkClickListener( new ClickListener() {
+					@Override
+					public void buttonClick( ClickEvent event )
+					{
+						TunnelService.getInstance().removeTunnel( selectedTunnel.getId() );
+						TunnelService.getInstance().addTunnel( tunnelForm.getTunnel() );
+						getLogger().log( Level.FINE, "Edit" );
+					}
+				} );
+				tunnelWindow.setContent( tunnelForm );
+			}
+			else
+			{
+				tunnelWindow.setCaption( "Bulk Edit" );
+				
+				tunnelWindow.addOkClickListener( new ClickListener() {
+					@Override
+					public void buttonClick( ClickEvent event )
+					{
+						Tunnel formTunnel = tunnelForm.getTunnel();
+						for( Tunnel tunnel : selectedTunnels )
+						{
+							TunnelService.getInstance().removeTunnel( tunnel.getId() );
+							
+							Tunnel newTunnel = formTunnel.clone();
+							newTunnel.setLocalPort( tunnel.getLocalPort() );
+							newTunnel.setRemotePort( tunnel.getRemotePort() );
+							TunnelService.getInstance().addTunnel( newTunnel );
+						}
+						getLogger().log( Level.FINE, "Bulk Edit" );
+					}
+				} );
+				
+				tunnelForm.disablePortFields();
+				
+				VerticalLayout vl = new VerticalLayout();
+				Label info = new Label( "This will edit all selected tunnels, keeping only the ports as they were." );
+				
+				vl.addComponent( info );
+				vl.addComponent( tunnelForm );
+				
+				tunnelWindow.setContent( vl );
+			}
+			
 			tunnelWindow.center();
-
-			tunnelWindow.addOkClickListener( new ClickListener() {
-				@Override
-				public void buttonClick( ClickEvent event )
-				{
-					TunnelService.getInstance().removeTunnel( selectedTunnel.getId() );
-					TunnelService.getInstance().addTunnel( tunnelForm.getTunnel() );
-					getLogger().log( Level.FINE, "Edit" );
-				}
-			} );
+			
 			UI.getCurrent().addWindow( tunnelWindow );
 		}
 	}

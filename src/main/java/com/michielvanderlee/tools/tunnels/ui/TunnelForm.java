@@ -84,6 +84,12 @@ public class TunnelForm extends FormLayout
 		reverseTunnel.setValue( tunnel.getType() == TunnelType.REVERSE );
 	}
 	
+	public void disablePortFields()
+	{
+		localPort.setEnabled( false );
+		remotePort.setEnabled( false );		
+	}
+	
 	// ****************************************************************************************
 	// getters and setters.
 	// ****************************************************************************************
