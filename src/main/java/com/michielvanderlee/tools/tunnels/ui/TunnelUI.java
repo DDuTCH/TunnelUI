@@ -20,6 +20,7 @@ import com.michielvanderlee.vaadin.windows.ModalWindow;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.annotations.Widgetset;
+import com.vaadin.data.sort.Sort;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.event.SelectionEvent;
@@ -138,7 +139,7 @@ public class TunnelUI extends UI
 			public void poll( PollEvent event )
 			{
 				// Force refresh of grid
-				grid.sort( "connected", SortDirection.DESCENDING );
+				grid.refreshSort();
 			}
 		} );
 	}
@@ -155,9 +156,10 @@ public class TunnelUI extends UI
 		return selectedTunnels;
 	}
 
-	private Grid buildGrid()
+	private TunnelGrid buildGrid()
 	{
-		Grid grid = new Grid( );
+		// Override sort method to allow sort parameters to be saved.
+		TunnelGrid grid = new TunnelGrid( );
 		grid.setContainerDataSource( getTunnelContainer( grid ) );
 		grid.setImmediate( true );
 		grid.setWidth( 670, Unit.PIXELS );
@@ -248,7 +250,7 @@ public class TunnelUI extends UI
 	// Properties
 	// ****************************************************************************************
 	private ActionBar	actionBar;
-	private Grid		grid;
+	private TunnelGrid		grid;
 	private TextArea	logArea;
 
 	// ****************************************************************************************
