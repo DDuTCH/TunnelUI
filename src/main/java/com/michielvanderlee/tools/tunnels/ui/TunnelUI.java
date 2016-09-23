@@ -490,6 +490,10 @@ public class TunnelUI extends UI
 			for( Tunnel tunnel : selectedTunnels )
 			{
 				TunnelService.getInstance().startTunnel( tunnel.getId() );
+				
+				// hack to get grid selection to refresh. This updates any selection related events. (e.g. update button enabled state)
+				grid.deselect( tunnel );
+				grid.select( tunnel );
 			}
 		}
 	}
@@ -509,6 +513,10 @@ public class TunnelUI extends UI
 			for( Tunnel tunnel : selectedTunnels )
 			{
 				TunnelService.getInstance().stopTunnel( tunnel.getId() );
+				
+				// hack to get grid selection to refresh. This updates any selection related events. (e.g. update button enabled state)
+				grid.deselect( tunnel );
+				grid.select( tunnel );
 			}
 		}
 	}
