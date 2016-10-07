@@ -39,7 +39,7 @@ public class TunnelService
 		try
 		{
 			Tunnel tunnel = tunnelCache.get( id );
-			Session session = jsch.getSession( tunnel.getTunnelUser(), tunnel.getTunnelHost() );
+			Session session = jsch.getSession( tunnel.getTunnelUser(), tunnel.getTunnelHost(), tunnel.getTunnelPort() );
 			
 			session.setUserInfo( buildUserInfo( tunnel ) );
 			session.connect();

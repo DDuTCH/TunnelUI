@@ -36,6 +36,12 @@ public class TunnelBuilder
 		return this;
 	}
 	
+	public TunnelBuilder setTunnelPort( int tunnelPort )
+	{
+		this.tunnelPort = tunnelPort;
+		return this;
+	}
+	
 	public TunnelBuilder setTunnelUser( String tunnelUser )
 	{
 		this.tunnelUser = tunnelUser;
@@ -56,7 +62,7 @@ public class TunnelBuilder
 	
 	public Tunnel build()
 	{
-		return new Tunnel( localPort, remotePort, host, tunnelHost, tunnelUser, tunnelPassword, type );
+		return new Tunnel( localPort, remotePort, host, tunnelHost, tunnelPort, tunnelUser, tunnelPassword, type );
 	}
 	
 	//****************************************************************************************
@@ -70,6 +76,7 @@ public class TunnelBuilder
 	private Integer				remotePort;
 	private String				host;
 	private String				tunnelHost;
+	private Integer				tunnelPort;
 	private String				tunnelUser;
 	private String				tunnelPassword;
 	private TunnelType			type;

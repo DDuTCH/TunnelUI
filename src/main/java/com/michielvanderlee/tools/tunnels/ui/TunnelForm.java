@@ -40,12 +40,18 @@ public class TunnelForm extends FormLayout
 
 		host = new TextField( "Host:" );
 
-		ObjectProperty<Integer> hostPortProp = new ObjectProperty<Integer>( 1 );
-		remotePort = new TextField( "Remote Port:", hostPortProp );
+		ObjectProperty<Integer> remotePortProp = new ObjectProperty<Integer>( 1 );
+		remotePort = new TextField( "Remote Port:", remotePortProp );
 		remotePort.addValidator( new IntegerRangeValidator( "Must be between 1-66535", 1, 65535 ) );
 		remotePort.setConverter( new NoGroupingIntegerConverter() );
 		remotePort.setImmediate( true );
-
+		
+		ObjectProperty<Integer> tunnelPortProp = new ObjectProperty<Integer>( 22 );
+		tunnelPort = new TextField( "Tunnel Port:", tunnelPortProp );
+		tunnelPort.addValidator( new IntegerRangeValidator( "Must be between 1-66535", 1, 65535 ) );
+		tunnelPort.setConverter( new NoGroupingIntegerConverter() );
+		tunnelPort.setImmediate( true );
+		
 		tunnelHost = new TextField( "Tunnel Host:" );
 		tunnelUser = new TextField( "Tunnel User:" );
 		tunnelPassword = new PasswordField( "Tunnel Password:" );
@@ -55,6 +61,7 @@ public class TunnelForm extends FormLayout
 		addComponent( host );
 		addComponent( remotePort );
 		addComponent( tunnelHost );
+		addComponent( tunnelPort );
 		addComponent( tunnelUser );
 		addComponent( tunnelPassword );
 		addComponent( reverseTunnel );
@@ -67,6 +74,7 @@ public class TunnelForm extends FormLayout
 				.setHost( host.getValue() )
 				.setRemotePort( Integer.valueOf( remotePort.getValue() ) )
 				.setTunnelHost( tunnelHost.getValue() )
+				.setTunnelPort( Integer.valueOf( tunnelPort.getValue() ) )
 				.setTunnelUser( tunnelUser.getValue() )
 				.setTunnelPassword( tunnelPassword.getValue() )
 				.setTunnelType( reverseTunnel.getValue() ? TunnelType.REVERSE : TunnelType.FORWARD )
@@ -79,6 +87,7 @@ public class TunnelForm extends FormLayout
 		remotePort.setValue( Integer.toString( tunnel.getRemotePort() ) );
 		host.setValue( tunnel.getHost() );
 		tunnelHost.setValue( tunnel.getTunnelHost() );
+		tunnelPort.setValue( Integer.toString( tunnel.getTunnelPort() ) );
 		tunnelUser.setValue( tunnel.getTunnelUser() );
 		tunnelPassword.setValue( tunnel.getTunnelPassword() );
 		reverseTunnel.setValue( tunnel.getType() == TunnelType.REVERSE );
@@ -112,6 +121,11 @@ public class TunnelForm extends FormLayout
 	{
 		return tunnelHost;
 	}
+	
+	public TextField getTunnelPort()
+	{
+		return tunnelPort;
+	}
 
 	public TextField getTunnelUser()
 	{
@@ -135,6 +149,7 @@ public class TunnelForm extends FormLayout
 	private TextField		remotePort;
 	private TextField		host;
 	private TextField		tunnelHost;
+	private TextField		tunnelPort;
 	private TextField		tunnelUser;
 	private PasswordField	tunnelPassword;
 	private CheckBox		reverseTunnel;

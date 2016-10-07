@@ -14,12 +14,13 @@ public class Tunnel implements Serializable, Cloneable
 	// ****************************************************************************************
 	// Constructors
 	// ****************************************************************************************
-	public Tunnel( Integer localPort, Integer hostPort, String host, String tunnelHost, String tunnelUser, String tunnelPassword, TunnelType type )
+	public Tunnel( Integer localPort, Integer hostPort, String host, String tunnelHost, Integer tunnelPort, String tunnelUser, String tunnelPassword, TunnelType type )
 	{
 		this.localPort = localPort;
 		this.remotePort = hostPort;
 		this.host = host;
 		this.tunnelHost = tunnelHost;
+		this.tunnelPort = tunnelPort;
 		this.tunnelUser = tunnelUser;
 		this.tunnelPassword = tunnelPassword;
 		this.type = type;
@@ -27,7 +28,7 @@ public class Tunnel implements Serializable, Cloneable
 
 	// ****************************************************************************************
 	// Methods
-	// ****************************************************************************************	
+	// ****************************************************************************************
 	@Override
 	public Tunnel clone()
 	{
@@ -41,7 +42,7 @@ public class Tunnel implements Serializable, Cloneable
 				.setTunnelType( type )
 				.build();
 	}
-	
+
 	@Override
 	public String toString()
 	{
@@ -109,6 +110,15 @@ public class Tunnel implements Serializable, Cloneable
 		this.tunnelHost = tunnelHost;
 	}
 	
+	public Integer getTunnelPort()
+	{
+		return tunnelPort;
+	}
+	public void setTunnelPort( Integer tunnelPort )
+	{
+		this.tunnelPort = tunnelPort;
+	}
+
 	public String getTunnelUser()
 	{
 		return tunnelUser;
@@ -163,6 +173,7 @@ public class Tunnel implements Serializable, Cloneable
 	private Integer				remotePort;
 	private String				host;
 	private String				tunnelHost;
+	private Integer				tunnelPort	= 22;
 	private String				tunnelUser;
 	private String				tunnelPassword;
 	private TunnelType			type;
@@ -171,7 +182,7 @@ public class Tunnel implements Serializable, Cloneable
 
 	public enum TunnelField
 	{
-		ID( "id" ), LOCAL_PORT( "localPort" ), REMOTE_PORT( "remotePort" ), HOST( "host" ), TUNNEL_HOST( "tunnelHost" ), TUNNEL_USER( "tunnelUser" ), TUNNEL_PASSWORD( "tunnelPassword" ), TUNNEL_TYPE( "type" ), SESSION( "session" ), CONNECTED( "connected" );
+		ID( "id" ), LOCAL_PORT( "localPort" ), REMOTE_PORT( "remotePort" ), HOST( "host" ), TUNNEL_HOST( "tunnelHost" ), TUNNEL_PORT( "tunnelPort" ), TUNNEL_USER( "tunnelUser" ), TUNNEL_PASSWORD( "tunnelPassword" ), TUNNEL_TYPE( "type" ), SESSION( "session" ), CONNECTED( "connected" );
 
 		private TunnelField( String name )
 		{
