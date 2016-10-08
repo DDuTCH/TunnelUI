@@ -1,13 +1,9 @@
 package com.michielvanderlee.tools.tunnels;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
-
-import sun.util.logging.LoggingSupport;
 
 public class LightFormatter extends Formatter
 {

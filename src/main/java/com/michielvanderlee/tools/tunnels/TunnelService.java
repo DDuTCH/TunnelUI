@@ -9,8 +9,6 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UserInfo;
-import com.vaadin.data.util.ObjectProperty;
-import com.vaadin.server.VaadinSession;
 
 public class TunnelService
 {
