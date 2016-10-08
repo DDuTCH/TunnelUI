@@ -37,6 +37,7 @@ public class Tunnel implements Serializable, Cloneable
 				.setLocalPort( localPort )
 				.setRemotePort( remotePort )
 				.setTunnelHost( tunnelHost )
+				.setTunnelPort( tunnelPort )
 				.setTunnelUser( tunnelUser )
 				.setTunnelPassword( tunnelPassword )
 				.setTunnelType( type )
@@ -58,6 +59,8 @@ public class Tunnel implements Serializable, Cloneable
 				.append( tunnelUser )
 				.append( '@' )
 				.append( tunnelHost )
+				.append( ':' )
+				.append( tunnelPort )
 				.toString();
 	}
 
@@ -173,7 +176,7 @@ public class Tunnel implements Serializable, Cloneable
 	private Integer				remotePort;
 	private String				host;
 	private String				tunnelHost;
-	private Integer				tunnelPort	= 22;
+	private Integer				tunnelPort;
 	private String				tunnelUser;
 	private String				tunnelPassword;
 	private TunnelType			type;
